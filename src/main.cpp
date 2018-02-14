@@ -212,8 +212,8 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferID);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(int), &indices[0], GL_DYNAMIC_DRAW);
 
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glEnableVertexAttribArray(3);
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		glBindVertexArray(0);
 		//END SUN
@@ -225,7 +225,7 @@ public:
 		GLSL::checkVersion();
 
 		// Set background color.
-		glClearColor(1, 1, 1, 1.0f);
+		glClearColor(0.5, 0.5, 0.9, 1.0f);
 		// Enable z-buffer test.
 		glEnable(GL_DEPTH_TEST);
 
@@ -238,19 +238,19 @@ public:
 		prog->addUniform("V");
 		prog->addUniform("M");
 		prog->addAttribute("vertPos");
+		//prog2->addAttribute("vertNor");
 
-/*
-		prog = std::make_shared<Program>();
-		prog->setVerbose(true);
-		prog->setShaderNames(resourceDirectory + "/shader_vertexSphere.glsl", resourceDirectory + "/shader_fragmentSphere.glsl");
-		prog->init();
-		prog->addUniform("P");
-		prog->addUniform("V");
-		prog->addUniform("M");
-		prog->addUniform("campos");
-		prog->addAttribute("vertPos");
-		prog->addAttribute("vertNor");
-*/
+		prog2 = std::make_shared<Program>();
+		prog2->setVerbose(true);
+		prog2->setShaderNames(resourceDirectory + "/shader_vertexSphere.glsl", resourceDirectory + "/shader_fragmentSphere.glsl");
+		prog2->init();
+		prog2->addUniform("P");
+		prog2->addUniform("V");
+		prog2->addUniform("M");
+		prog2->addUniform("Center");
+		//prog2->addUniform("campos");
+		prog2->addAttribute("vertPos");
+		prog2->addAttribute("vertNor");
 	}
 
 
@@ -288,8 +288,8 @@ public:
 		
 		//CYLINDER
 		glm::mat4 Rotate = glm::rotate(glm::mat4(1.0f), w, glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.25f, 0.25f, 2.0f));
-		glm::mat4 Trans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f));
+		glm::mat4 Scale = glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.4f));
+		glm::mat4 Trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.1f, 0.0f, 0.0f));
 
 		M = Trans*Rotate*Scale;
 
@@ -304,37 +304,45 @@ public:
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferID);
 		glDrawElements(GL_TRIANGLES, numVert * 3, GL_UNSIGNED_INT, (void *)0);
 
+		Trans = glm::translate(glm::mat4(1.0f), glm::vec3(0.1f, 0.0f, 0.0f));
+		M = Trans * Rotate * Scale;
+		glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glDrawElements(GL_TRIANGLES, numVert * 3, GL_UNSIGNED_INT, (void*)0); //Right H
+
+		//shape->draw(prog);
+
 		prog->unbind();
 		//END CYLINDER
 
-		/*
+		
 		//SPHERE
-		w = 0.0;
-		w += 1.0 * frametime;//rotation angle
+		//w = 0.0;
+		//w += 1.0 * frametime;//rotation angle
 		float trans = 0;// sin(t) * 2;
 		glm::mat4 RotateY = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
 		float angle = -3.1415926 / 2.0;
 		glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(1.0f, 0.0f, 0.0f));
-		glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3 + trans));
-		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(0.8f, 0.8f, 0.8f));
-
-		M = TransZ * RotateY * RotateX * S;
+		glm::mat4 TransZ = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+		glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+		
+		M = TransZ * S;
 
 		// Draw the box using GLSL.
-		prog->bind();
+		prog2->bind();
 
 		V = mycam.process(frametime);
 		//send the matrices to the shaders
-		glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, &PP[0][0]);
-		glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glUniform3fv(prog->getUniform("campos"), 1, &mycam.pos[0]);
+		glUniformMatrix4fv(prog2->getUniform("P"), 1, GL_FALSE, &PP[0][0]);
+		glUniformMatrix4fv(prog2->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(prog2->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniform4f(prog2->getUniform("Center"), width / 2, height / 2, 0, 0);
+		//glUniform3fv(prog->getUniform("campos"), 1, &mycam.pos[0]);
 
-		shape->draw(prog);
+		shape->draw(prog2);
 
-		prog->unbind();	
+		prog2->unbind();	
 		//END SPHERE
-		*/
+		
 	}
 	float p2wX(float xp)
 	{
